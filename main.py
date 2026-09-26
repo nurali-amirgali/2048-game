@@ -1,34 +1,36 @@
 import pygame
 import sys
+from board import Board
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+WIDTH = 800
+HEIGHT = 600
 FPS = 60
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
+BG_COLOR = (250, 248, 240)
 
-def main():
-    pygame.init()
+pygame.init()
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True)
+pygame.display.set_caption("2048")
+clock = pygame.time.Clock()
+
+tileSize = 70
+boardX = WIDTH/2
+boardY = HEIGHT/2
+board = Board(screen, x=boardX, y=boardY, tileSize=tileSize)
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            
+    screen.fill(BG_COLOR)
+    board.render()
     
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("2048")
-    clock = pygame.time.Clock()
+    pygame.display.flip() 
     
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-        screen.fill(BLACK)  
-        
-        pygame.display.flip() 
-        
-        clock.tick(FPS) 
-
-    pygame.quit()
-    sys.exit()
-
-if __name__ == "__main__":
-    main()
+    clock.tick(FPS) 
+    
+pygame.quit()
+sys.exit()
