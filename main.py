@@ -14,10 +14,9 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True)
 pygame.display.set_caption("2048")
 clock = pygame.time.Clock()
 
-tileSize = 70
 boardX = WIDTH/2
 boardY = HEIGHT/2
-board = Board(screen, x=boardX, y=boardY, tileSize=tileSize)
+board = Board(screen, x=boardX, y=boardY, tileSize=90)
 
 running = True
 while running:
