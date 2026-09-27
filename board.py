@@ -32,25 +32,29 @@ class Board:
         self.numTilesY = numTilesY
         self.x = x
         self.y = y
-        self.maxTextWidth = 0.8
-        self.maxTextHeight = 0.5
+        self.maxTextWidth = 0.7
+        self.maxTextHeight = 0.35
         self.tileSize = tileSize
-        self.font = pygame.font.SysFont(None, 36)
-        #self.tiles = [[0] * 5 for _ in range(5)]
-        self.tiles = [
-            [random.choice([0] + [2**x for x in range(1, len(colors)-5)]) for _ in range(5)]
-            for _ in range(5)
-        ]
+        self.defaultFont = pygame.font.SysFont(None, 36)
+        self.fonts = []
+        self.tiles = [[0] * 5 for _ in range(5)]
+        print(self.tiles)
+        self.initFontSizes()
     
     def initFontSizes(self):
         font = pygame.font.SysFont(None, 36)
-        width, height = font.size("0")
-        fontSizes = []
         for i in range(1, len(colors)):
             value = int(2**i)
             width, height = font.size(str(value))
-            diffX = () - width
-            
+            diffX = (self.tileSize*self.maxTextWidth) - width 
+            diffY = (self.tileSize*self.maxTextHeight) - height
+            change = 0
+            if diffX < diffY:
+                change = (self.tileSize*self.maxTextWidth)/width
+            else:
+                change = (self.tileSize*self.maxTextHeight)/height
+            newFont = pygame.font.SysFont(None, round(36 * change))
+            self.fonts.append(newFont)
         
     def render(self):
         gapSize = 8
@@ -67,20 +71,27 @@ class Board:
                 value = self.tiles[row][col]
                 color = (189, 172, 151)
                 textColor = (255,255,255)
+                colorIndex = None
                 if value:
                     colorIndex = int(math.log2(value)-1)
                     try:
                         color, textColor = colors[colorIndex]
                     except IndexError:
+                        colorIndex = None
                         color = (255,0,0)
                 drawWidth = self.tileSize - gapSize
                 drawHeight = self.tileSize - gapSize
                 pygame.draw.rect(self.screen, color, (drawX, drawY, drawWidth, drawHeight), border_radius=9)
 
                 if value:
+                    sizeIndex = int(math.log2(value)-1)
+                    try:
+                        font = self.fonts[sizeIndex]
+                    except IndexError:
+                        font = self.defaultFont
                     valueText = str(value)
-                    width, height = self.font.size(valueText)
-                    surface = self.font.render(valueText, True, textColor)
+                    width, height = font.size(valueText)
+                    surface = font.render(valueText, True, textColor)
 
                     textX = round(drawX + (drawWidth/2) - (width/2))
                     textY = round(drawY + (drawHeight/2) - (height/2))
