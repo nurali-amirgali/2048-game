@@ -5,6 +5,11 @@ import math
 BLACK_TEXT = (119, 110, 101)
 WHITE_TEXT = (255, 255, 255)
 
+UP = 0
+RIGHT = 1
+DOWN = 2
+LEFT = 3
+
 colors = [
     ((238, 228, 218),BLACK_TEXT),
     ((235, 215, 183),BLACK_TEXT),
@@ -38,8 +43,18 @@ class Board:
         self.defaultFont = pygame.font.SysFont(None, 36)
         self.fonts = []
         self.tiles = [[0] * 5 for _ in range(5)]
-        print(self.tiles)
         self.initFontSizes()
+    
+    def placeRandomTile(self, newValue=2):
+        availableTiles = []
+        for row in range(self.numTilesY):
+            for col in range(self.numTilesX):
+                value = self.tiles[row][col]
+                if value == 0:
+                    availableTiles.append((row,col))
+        if availableTiles:
+            randomTile = random.choice(availableTiles)
+            self.tiles[randomTile[0]][randomTile[1]] = newValue
     
     def initFontSizes(self):
         font = pygame.font.SysFont(None, 36)
