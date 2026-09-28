@@ -17,6 +17,8 @@ clock = pygame.time.Clock()
 boardX = WIDTH/2
 boardY = HEIGHT/2
 board = Board(screen, x=boardX, y=boardY, tileSize=90)
+board.placeRandomTile()
+board.placeRandomTile()
 
 running = True
 while running:
@@ -24,7 +26,17 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_a:
+                board.makeMove(3)
+                board.placeRandomTile()
+            if event.key == pygame.K_d:
+                board.makeMove(1)
+                board.placeRandomTile()
+            if event.key == pygame.K_w:
+                board.makeMove(0)
+                board.placeRandomTile()
+            if event.key == pygame.K_s:
+                board.makeMove(2)
                 board.placeRandomTile()
             
     screen.fill(BG_COLOR)

@@ -42,8 +42,54 @@ class Board:
         self.tileSize = tileSize
         self.defaultFont = pygame.font.SysFont(None, 36)
         self.fonts = []
-        self.tiles = [[0] * 5 for _ in range(5)]
+        self.tiles = [[0] * numTilesX for _ in range(numTilesY)]
         self.initFontSizes()
+    
+    def moveLeft(self, array):
+        array = array.copy()
+        i = 0
+        currentValue = 0
+        currentIndex = 0
+        while i < len(array):
+            value = array[i]
+            if value != 0:
+                if value == currentValue:
+                    array[i] = 0
+                    array[currentIndex] = value * 2
+                    i = currentIndex + 1
+                    currentValue = value * 2
+                else:
+                    newIndex = currentIndex if currentValue == 0 else currentIndex + 1
+                    array[i] = 0
+                    array[newIndex] = value
+                    currentValue = value
+                    currentIndex = newIndex
+            i += 1
+        return array
+        
+    def makeMove(self, move):
+        if move == LEFT or move == RIGHT:
+            for row in range(self.numTilesY):
+                if move == LEFT:
+                    self.tiles[row] = self.moveLeft(self.tiles[row])
+                else:
+                    newRow = self.moveLeft(self.tiles[row][::-1]) #[::-1] reverses an array
+                    self.tiles[row] = newRow[::-1]
+        else:
+            for col in range(self.numTilesX):
+                currentCol = []
+                for row in range(self.numTilesY):
+                    currentCol.append(self.tiles[row][col])       
+                
+                if move == DOWN:
+                    currentCol = currentCol[::-1]
+                    
+                newCol = self.moveLeft(currentCol)
+                if move == DOWN:
+                    newCol = newCol[::-1]
+                    
+                for row in range(self.numTilesY):
+                    self.tiles[row][col] = newCol[row]
     
     def placeRandomTile(self, newValue=2):
         availableTiles = []
