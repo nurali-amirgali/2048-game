@@ -1,6 +1,8 @@
 import random
 import pygame
 import math
+from copy import deepcopy
+from dataclasses import dataclass
 
 BLACK_TEXT = (119, 110, 101)
 WHITE_TEXT = (255, 255, 255)
@@ -30,6 +32,23 @@ colors = [
     ((139, 134, 227),WHITE_TEXT)
 ]
 
+class AnimTile:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        self.size = 40
+        self.targetX = 0
+        self.targetY = 0
+        self.time = 0
+        self.arrivalTime = 0
+
+@dataclass
+class MoveInfo:
+    fromSquare: tuple[int, int]
+    toSquare: tuple[int, int]
+    merge: bool
+    newValue: int
+
 class Board:
     def __init__(self, screen, x=0, y=0, tileSize=50, numTilesX=4,numTilesY=4):
         self.screen = screen
@@ -44,8 +63,16 @@ class Board:
         self.fonts = []
         self.tiles = [[0] * numTilesX for _ in range(numTilesY)]
         self.initFontSizes()
+        
+        self.moveSpeed = 0.1
+        self.lastTiles = deepcopy(self.tiles)
+        self.renderSquares = 0
+    
+    def animationTick(self, dt):
+        pass
     
     def moveLeft(self, array):
+        moveReport = []
         array = array.copy()
         i = 0
         currentValue = 0
@@ -54,6 +81,9 @@ class Board:
             value = array[i]
             if value != 0:
                 if value == currentValue:
+                    move = MoveInfo((i, 0), (currentIndex, 0), True, value * 2)
+                    moveReport.append(move)
+                    
                     array[i] = 0
                     array[currentIndex] = value * 2
                     i = currentIndex + 1
@@ -64,17 +94,34 @@ class Board:
                     array[newIndex] = value
                     currentValue = value
                     currentIndex = newIndex
+                    
+                    if i != newIndex:
+                        move = MoveInfo((i, 0), (newIndex, 0), False, 0)
+                        moveReport.append(move)
             i += 1
-        return array
+        return array, moveReport
         
     def makeMove(self, move):
+        moveInfoList = []
         if move == LEFT or move == RIGHT:
             for row in range(self.numTilesY):
                 if move == LEFT:
-                    self.tiles[row] = self.moveLeft(self.tiles[row])
+                    self.tiles[row], rawMoveInfo = self.moveLeft(self.tiles[row])
+                    newInfoList = []
+                    for info in rawMoveInfo:
+                        if info:
+                            newInfoList.append(MoveInfo((row, info.fromSquare[0]), (row, info.toSquare[0]), info.merge, info.newValue))
+                    moveInfoList.extend(newInfoList)
                 else:
-                    newRow = self.moveLeft(self.tiles[row][::-1]) #[::-1] reverses an array
+                    newRow, rawMoveInfo = self.moveLeft(self.tiles[row][::-1]) #[::-1] reverses an array
                     self.tiles[row] = newRow[::-1]
+                    
+                    newInfoList = []
+                    for info in rawMoveInfo:
+                        if info:
+                            newInfoList.append(MoveInfo((row, len(self.tiles[row]) - 1 - info.fromSquare[0]), (row, len(self.tiles[row]) - 1 - info.toSquare[0]), 
+                                                        info.merge, info.newValue))
+                    moveInfoList.extend(newInfoList)
         else:
             for col in range(self.numTilesX):
                 currentCol = []
@@ -84,12 +131,23 @@ class Board:
                 if move == DOWN:
                     currentCol = currentCol[::-1]
                     
-                newCol = self.moveLeft(currentCol)
+                newCol, rawMoveInfo = self.moveLeft(currentCol)
+                newInfoList = []
+                for info in rawMoveInfo:
+                    if info:
+                        newFrom = info.fromSquare[0]
+                        newTo = info.toSquare[0]
+                        if move == DOWN:
+                            newFrom = len(currentCol) - 1 - newFrom
+                            newTo = len(currentCol) - 1 - newTo
+                        newInfoList.append(MoveInfo((newFrom, col), (newTo, col), info.merge, info.newValue))
+                moveInfoList.extend(newInfoList)
                 if move == DOWN:
                     newCol = newCol[::-1]
                     
                 for row in range(self.numTilesY):
                     self.tiles[row][col] = newCol[row]
+        print(moveInfoList)
     
     def placeRandomTile(self, newValue=2):
         availableTiles = []

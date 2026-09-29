@@ -20,6 +20,7 @@ board = Board(screen, x=boardX, y=boardY, tileSize=90)
 board.placeRandomTile()
 board.placeRandomTile()
 
+i = 0
 running = True
 while running:
     for event in pygame.event.get():
@@ -38,7 +39,12 @@ while running:
             if event.key == pygame.K_s:
                 board.makeMove(2)
                 board.placeRandomTile()
-            
+            if event.key == pygame.K_p or event.key == pygame.K_o:
+                board.makeMove(i)
+                board.placeRandomTile()
+                i += 1
+                i = i % 4
+
     screen.fill(BG_COLOR)
     board.render()
     
