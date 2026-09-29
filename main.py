@@ -30,19 +30,14 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 board.makeMove(3)
-                board.placeRandomTile()
             if event.key == pygame.K_d:
                 board.makeMove(1)
-                board.placeRandomTile()
             if event.key == pygame.K_w:
                 board.makeMove(0)
-                board.placeRandomTile()
             if event.key == pygame.K_s:
                 board.makeMove(2)
-                board.placeRandomTile()
             if event.key == pygame.K_p or event.key == pygame.K_o:
                 board.makeMove(i)
-                board.placeRandomTile()
                 i += 1
                 i = i % 4
 

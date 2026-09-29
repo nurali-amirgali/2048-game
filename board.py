@@ -41,10 +41,15 @@ def add_tuple(t, n):
 def lerp_position(pos, target, current_time, arrival_time):
     t = min(current_time / arrival_time, 1)
 
+    t = t * t * (3 - 2 * t)
+
     x = pos[0] + (target[0] - pos[0]) * t
     y = pos[1] + (target[1] - pos[1]) * t
 
     return x, y
+
+def overshoot(x, amount=0.2):
+    return x + amount * 4 * x * (1 - x)
 
 @dataclass
 class MoveInfo:
@@ -68,6 +73,8 @@ class Board:
         self.fonts = []
         self.tiles = [[0] * numTilesX for _ in range(numTilesY)]
         self.initFontSizes()
+        self.newTileCoord = (-1,-1)
+        self.score = 0
         
         self.currentMovement = []
         self.lastMovedTime = 0
@@ -160,8 +167,14 @@ class Board:
                 for row in range(self.numTilesY):
                     self.tiles[row][col] = newCol[row]
 
+        for move in moveInfoList:
+            if move.merge:
+                self.score += move.newValue
+                print(self.score)
+        
         self.lastMovedTime = 0
         self.currentMovement = moveInfoList
+        self.placeRandomTile()
     
     def placeRandomTile(self, newValue=2):
         availableTiles = []
@@ -173,6 +186,9 @@ class Board:
         if availableTiles:
             randomTile = random.choice(availableTiles)
             self.tiles[randomTile[0]][randomTile[1]] = newValue
+            self.newTileCoord = (randomTile[0], randomTile[1])
+        else:
+            self.newTileCoord = (-1, -1)
     
     def initFontSizes(self):
         font = pygame.font.SysFont(None, 36)
@@ -189,7 +205,10 @@ class Board:
             newFont = pygame.font.SysFont(None, round(36 * change))
             self.fonts.append(newFont)
         
-    def renderTile(self, x, y, value, gapSize = 8):
+    def renderTile(self, drawSurface, x, y, value, gapSize = 8, scale = 1):
+        if scale <= 0:
+            return
+        
         color = (189, 172, 151)
         textColor = (255,255,255)
         colorIndex = None
@@ -200,11 +219,12 @@ class Board:
             except IndexError:
                 colorIndex = None
                 color = (255,0,0)
-        drawWidth = self.tileSize - gapSize
-        drawHeight = self.tileSize - gapSize
+                
+        drawWidth = (self.tileSize - gapSize) * scale
+        drawHeight = (self.tileSize - gapSize) * scale
         x = x - (drawWidth/2)
         y = y - (drawHeight/2)
-        pygame.draw.rect(self.screen, color, (x, y, drawWidth, drawHeight), border_radius=9)
+        pygame.draw.rect(drawSurface, color, (x, y, drawWidth, drawHeight), border_radius=max(0, round(9 * scale)))
         
         if value:
             sizeIndex = int(math.log2(value)-1)
@@ -213,12 +233,16 @@ class Board:
             except IndexError:
                 font = self.defaultFont
             valueText = str(value)
-            width, height = font.size(valueText)
+
             surface = font.render(valueText, True, textColor)
+            if scale < 1:                                             
+                w, h = surface.get_size()                              
+                surface = pygame.transform.smoothscale(               
+                    surface, (max(1, round(w * scale)), max(1, round(h * scale))))
             
-            textX = round(x + (drawWidth/2) - (width/2))
-            textY = round(y + (drawHeight/2) - (height/2))
-            self.screen.blit(surface, (textX, textY))
+            textX = round(x + (drawWidth/2) - (surface.get_width()/2))
+            textY = round(y + (drawHeight/2) - (surface.get_height()/2))
+            drawSurface.blit(surface, (textX, textY))
     
     def render(self):
         gapSize = 8
@@ -234,7 +258,8 @@ class Board:
                 for col in range(self.numTilesX):
                     drawX, drawY = self.center(row, col, x, y, gapSize)
                     value = self.tiles[row][col]
-                    self.renderTile(drawX, drawY, value, gapSize)
+                    self.renderTile(self.screen, drawX, drawY, value, gapSize)
+                
         else:
             movingFrom = {move.fromSquare for move in self.currentMovement}
                 
@@ -243,9 +268,13 @@ class Board:
                     drawX, drawY = self.center(row, col, x, y, gapSize)
                     value = self.tiles[row][col]
                     if (row, col) not in movingFrom:
-                        self.renderTile(drawX, drawY, self.oldTiles[row][col], gapSize)
+                        if (row, col) != self.newTileCoord:
+                            self.renderTile(self.screen, drawX, drawY, self.oldTiles[row][col], gapSize)
+                        else:
+                            self.renderTile(self.screen, drawX, drawY, 0, gapSize)
+                            self.renderTile(self.screen, drawX, drawY, self.tiles[row][col], gapSize, scale=progress)
                     else:
-                        self.renderTile(drawX, drawY, 0, gapSize)
+                        self.renderTile(self.screen, drawX, drawY, 0, gapSize)
             
             for move in self.currentMovement:
                 fromSquare = multiply_tuple(move.fromSquare, self.tileSize)
@@ -260,4 +289,4 @@ class Board:
                 toSquare = (toX, toY)
                 
                 drawPos = lerp_position(fromSquare, toSquare, self.lastMovedTime, self.moveSpeed)
-                self.renderTile(drawPos[0], drawPos[1], move.currentValue, gapSize)
+                self.renderTile(self.screen, drawPos[0], drawPos[1], move.currentValue, gapSize)
