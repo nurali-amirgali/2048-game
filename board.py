@@ -52,6 +52,7 @@ class MoveInfo:
     toSquare: tuple[int, int]
     merge: bool
     newValue: int
+    currentValue: int
 
 class Board:
     def __init__(self, screen, x=0, y=0, tileSize=50, numTilesX=4,numTilesY=4):
@@ -70,7 +71,9 @@ class Board:
         
         self.currentMovement = []
         self.lastMovedTime = 0
-        self.moveSpeed = 1
+        self.moveSpeed = 0.15
+        self.popUpTime = 0.15
+        self.oldTiles = deepcopy(self.tiles)
         
     def center(self, row, col, x, y, gapSize):
         return ((col * self.tileSize) + x + (self.tileSize/2) + (gapSize/2),
@@ -89,7 +92,7 @@ class Board:
             value = array[i]
             if value != 0:
                 if value == currentValue:
-                    move = MoveInfo((i, 0), (currentIndex, 0), True, value * 2)
+                    move = MoveInfo((i, 0), (currentIndex, 0), True, value * 2, value)
                     moveReport.append(move)
                     
                     array[i] = 0
@@ -104,12 +107,13 @@ class Board:
                     currentIndex = newIndex
                     
                     if i != newIndex:
-                        move = MoveInfo((i, 0), (newIndex, 0), False, 0)
+                        move = MoveInfo((i, 0), (newIndex, 0), False, 0, value)
                         moveReport.append(move)
             i += 1
         return array, moveReport
         
     def makeMove(self, move):
+        self.oldTiles = deepcopy(self.tiles)
         moveInfoList = []
         if move == LEFT or move == RIGHT:
             for row in range(self.numTilesY):
@@ -118,7 +122,7 @@ class Board:
                     newInfoList = []
                     for info in rawMoveInfo:
                         if info:
-                            newInfoList.append(MoveInfo((row, info.fromSquare[0]), (row, info.toSquare[0]), info.merge, info.newValue))
+                            newInfoList.append(MoveInfo((row, info.fromSquare[0]), (row, info.toSquare[0]), info.merge, info.newValue, info.currentValue))
                     moveInfoList.extend(newInfoList)
                 else:
                     newRow, rawMoveInfo = self.moveLeft(self.tiles[row][::-1]) #[::-1] reverses an array
@@ -128,7 +132,7 @@ class Board:
                     for info in rawMoveInfo:
                         if info:
                             newInfoList.append(MoveInfo((row, len(self.tiles[row]) - 1 - info.fromSquare[0]), (row, len(self.tiles[row]) - 1 - info.toSquare[0]), 
-                                                        info.merge, info.newValue))
+                                                        info.merge, info.newValue, info.currentValue))
                     moveInfoList.extend(newInfoList)
         else:
             for col in range(self.numTilesX):
@@ -148,7 +152,7 @@ class Board:
                         if move == DOWN:
                             newFrom = len(currentCol) - 1 - newFrom
                             newTo = len(currentCol) - 1 - newTo
-                        newInfoList.append(MoveInfo((newFrom, col), (newTo, col), info.merge, info.newValue))
+                        newInfoList.append(MoveInfo((newFrom, col), (newTo, col), info.merge, info.newValue, info.currentValue))
                 moveInfoList.extend(newInfoList)
                 if move == DOWN:
                     newCol = newCol[::-1]
@@ -232,10 +236,16 @@ class Board:
                     value = self.tiles[row][col]
                     self.renderTile(drawX, drawY, value, gapSize)
         else:
+            movingFrom = {move.fromSquare for move in self.currentMovement}
+                
             for row in range(self.numTilesY):
                 for col in range(self.numTilesX):
                     drawX, drawY = self.center(row, col, x, y, gapSize)
-                    self.renderTile(drawX, drawY, 0, gapSize)
+                    value = self.tiles[row][col]
+                    if (row, col) not in movingFrom:
+                        self.renderTile(drawX, drawY, self.oldTiles[row][col], gapSize)
+                    else:
+                        self.renderTile(drawX, drawY, 0, gapSize)
             
             for move in self.currentMovement:
                 fromSquare = multiply_tuple(move.fromSquare, self.tileSize)
@@ -250,4 +260,4 @@ class Board:
                 toSquare = (toX, toY)
                 
                 drawPos = lerp_position(fromSquare, toSquare, self.lastMovedTime, self.moveSpeed)
-                self.renderTile(drawPos[0], drawPos[1], 2, gapSize)
+                self.renderTile(drawPos[0], drawPos[1], move.currentValue, gapSize)
