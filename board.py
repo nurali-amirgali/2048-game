@@ -190,6 +190,25 @@ class Board:
         else:
             self.newTileCoord = (-1, -1)
     
+    def isGameOver(self):
+        for row in range(self.numTilesY):
+            for col in range(self.numTilesX):
+                if self.tiles[row][col] == 0:
+                    return False
+                
+        directions = [(-1, 0), (0, 1), (1, 0), (0, -1)] 
+        for row in range(self.numTilesY):
+            for col in range(self.numTilesX):
+                value = self.tiles[row][col]
+                for dRow, dCol in directions:
+                    newRow = row + dRow
+                    newCol = col + dCol
+                    if 0 <= newRow < self.numTilesY and 0 <= newCol < self.numTilesX:
+                        if self.tiles[newRow][newCol] == value:
+                            return False 
+
+        return True
+    
     def initFontSizes(self):
         font = pygame.font.SysFont(None, 36)
         for i in range(1, len(colors)):

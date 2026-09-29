@@ -14,6 +14,9 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT), vsync=True)
 pygame.display.set_caption("2048")
 clock = pygame.time.Clock()
 
+font = pygame.font.Font(None, 80)
+endFont = pygame.font.Font(None, 150)
+
 boardX = WIDTH/2
 boardY = HEIGHT/2
 board = Board(screen, x=boardX, y=boardY, tileSize=90)
@@ -22,6 +25,7 @@ board.placeRandomTile()
 
 i = 0
 running = True
+gameOver = False
 while running:
     dt = clock.tick(FPS) / 1000
     for event in pygame.event.get():
@@ -36,6 +40,12 @@ while running:
                 board.makeMove(0)
             if event.key == pygame.K_s:
                 board.makeMove(2)
+            if event.key == pygame.K_r or event.key == pygame.K_2 or event.key == pygame.K_a or event.key == pygame.K_s or event.key == pygame.K_d:
+                if gameOver:
+                    board = Board(screen, x=boardX, y=boardY, tileSize=90)
+                    board.placeRandomTile()
+                    board.placeRandomTile()
+                    gameOver = False
             if event.key == pygame.K_p or event.key == pygame.K_o:
                 board.makeMove(i)
                 i += 1
@@ -43,6 +53,17 @@ while running:
 
     screen.fill(BG_COLOR)
     board.render()
+    
+    text = font.render(str(board.score), True, (152, 136, 118))
+    width, height = font.size(str(board.score))
+    screen.blit(text, ((WIDTH/2) - (width/2), 30))
+    
+    if board.isGameOver():
+        text = endFont.render("GAME OVER!", True, (255,0,0))
+        width, height = endFont.size("GAME OVER!")
+        screen.blit(text, ((WIDTH/2) - (width/2), (HEIGHT/2) - (height/2)))
+        gameOver = True
+    
     board.animationTick(dt)
     
     pygame.display.flip() 
