@@ -32,15 +32,19 @@ colors = [
     ((139, 134, 227),WHITE_TEXT)
 ]
 
-class AnimTile:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.size = 40
-        self.targetX = 0
-        self.targetY = 0
-        self.time = 0
-        self.arrivalTime = 0
+def multiply_tuple(pos, n):
+    return tuple(x * n for x in pos)
+
+def add_tuple(t, n):
+    return tuple(x + n for x in t)
+
+def lerp_position(pos, target, current_time, arrival_time):
+    t = min(current_time / arrival_time, 1)
+
+    x = pos[0] + (target[0] - pos[0]) * t
+    y = pos[1] + (target[1] - pos[1]) * t
+
+    return x, y
 
 @dataclass
 class MoveInfo:
@@ -64,12 +68,16 @@ class Board:
         self.tiles = [[0] * numTilesX for _ in range(numTilesY)]
         self.initFontSizes()
         
-        self.moveSpeed = 0.1
-        self.lastTiles = deepcopy(self.tiles)
-        self.renderSquares = 0
+        self.currentMovement = []
+        self.lastMovedTime = 0
+        self.moveSpeed = 1
+        
+    def center(self, row, col, x, y, gapSize):
+        return ((col * self.tileSize) + x + (self.tileSize/2) + (gapSize/2),
+                (row * self.tileSize) + y + (self.tileSize/2) + (gapSize/2))
     
     def animationTick(self, dt):
-        pass
+        self.lastMovedTime += dt
     
     def moveLeft(self, array):
         moveReport = []
@@ -147,7 +155,9 @@ class Board:
                     
                 for row in range(self.numTilesY):
                     self.tiles[row][col] = newCol[row]
-        print(moveInfoList)
+
+        self.lastMovedTime = 0
+        self.currentMovement = moveInfoList
     
     def placeRandomTile(self, newValue=2):
         availableTiles = []
@@ -175,6 +185,37 @@ class Board:
             newFont = pygame.font.SysFont(None, round(36 * change))
             self.fonts.append(newFont)
         
+    def renderTile(self, x, y, value, gapSize = 8):
+        color = (189, 172, 151)
+        textColor = (255,255,255)
+        colorIndex = None
+        if value:
+            colorIndex = int(math.log2(value)-1)
+            try:
+                color, textColor = colors[colorIndex]
+            except IndexError:
+                colorIndex = None
+                color = (255,0,0)
+        drawWidth = self.tileSize - gapSize
+        drawHeight = self.tileSize - gapSize
+        x = x - (drawWidth/2)
+        y = y - (drawHeight/2)
+        pygame.draw.rect(self.screen, color, (x, y, drawWidth, drawHeight), border_radius=9)
+        
+        if value:
+            sizeIndex = int(math.log2(value)-1)
+            try:
+                font = self.fonts[sizeIndex]
+            except IndexError:
+                font = self.defaultFont
+            valueText = str(value)
+            width, height = font.size(valueText)
+            surface = font.render(valueText, True, textColor)
+            
+            textX = round(x + (drawWidth/2) - (width/2))
+            textY = round(y + (drawHeight/2) - (height/2))
+            self.screen.blit(surface, (textX, textY))
+    
     def render(self):
         gapSize = 8
         boardWidth = self.numTilesX * self.tileSize + gapSize
@@ -183,35 +224,30 @@ class Board:
         y = self.y - (boardHeight/2) - (gapSize/2)
         pygame.draw.rect(self.screen, (155, 137, 122), (x, y, boardWidth, boardHeight), border_radius=13)
         
-        for row in range(self.numTilesY):
-            for col in range(self.numTilesX):
-                drawX = (col * self.tileSize) + x + gapSize
-                drawY = (row * self.tileSize) + y + gapSize
-                value = self.tiles[row][col]
-                color = (189, 172, 151)
-                textColor = (255,255,255)
-                colorIndex = None
-                if value:
-                    colorIndex = int(math.log2(value)-1)
-                    try:
-                        color, textColor = colors[colorIndex]
-                    except IndexError:
-                        colorIndex = None
-                        color = (255,0,0)
-                drawWidth = self.tileSize - gapSize
-                drawHeight = self.tileSize - gapSize
-                pygame.draw.rect(self.screen, color, (drawX, drawY, drawWidth, drawHeight), border_radius=9)
-
-                if value:
-                    sizeIndex = int(math.log2(value)-1)
-                    try:
-                        font = self.fonts[sizeIndex]
-                    except IndexError:
-                        font = self.defaultFont
-                    valueText = str(value)
-                    width, height = font.size(valueText)
-                    surface = font.render(valueText, True, textColor)
-
-                    textX = round(drawX + (drawWidth/2) - (width/2))
-                    textY = round(drawY + (drawHeight/2) - (height/2))
-                    self.screen.blit(surface, (textX, textY))
+        progress = max(0, min(1, self.lastMovedTime / self.moveSpeed))
+        if progress == 1:
+            for row in range(self.numTilesY):
+                for col in range(self.numTilesX):
+                    drawX, drawY = self.center(row, col, x, y, gapSize)
+                    value = self.tiles[row][col]
+                    self.renderTile(drawX, drawY, value, gapSize)
+        else:
+            for row in range(self.numTilesY):
+                for col in range(self.numTilesX):
+                    drawX, drawY = self.center(row, col, x, y, gapSize)
+                    self.renderTile(drawX, drawY, 0, gapSize)
+            
+            for move in self.currentMovement:
+                fromSquare = multiply_tuple(move.fromSquare, self.tileSize)
+                toSquare = multiply_tuple(move.toSquare, self.tileSize)
+                
+                fromX = fromSquare[1] + x + (self.tileSize/2) + (gapSize/2)
+                fromY = fromSquare[0] + y + (self.tileSize/2) + (gapSize/2)
+                toX = toSquare[1] + x + (self.tileSize/2) + (gapSize/2)
+                toY = toSquare[0] + y + (self.tileSize/2) + (gapSize/2)
+                
+                fromSquare = (fromX, fromY)
+                toSquare = (toX, toY)
+                
+                drawPos = lerp_position(fromSquare, toSquare, self.lastMovedTime, self.moveSpeed)
+                self.renderTile(drawPos[0], drawPos[1], 2, gapSize)

@@ -23,6 +23,7 @@ board.placeRandomTile()
 i = 0
 running = True
 while running:
+    dt = clock.tick(FPS) / 1000
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -47,10 +48,9 @@ while running:
 
     screen.fill(BG_COLOR)
     board.render()
+    board.animationTick(dt)
     
     pygame.display.flip() 
-    
-    clock.tick(FPS) 
     
 pygame.quit()
 sys.exit()
