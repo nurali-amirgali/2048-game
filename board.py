@@ -48,8 +48,8 @@ def lerp_position(pos, target, current_time, arrival_time):
 
     return x, y
 
-def overshoot(x, amount=0.2):
-    return x + amount * 4 * x * (1 - x)
+def overshoot(t, amount=0.2):
+    return 1 + amount * math.sin(math.pi * t)
 
 @dataclass
 class MoveInfo:
@@ -76,10 +76,10 @@ class Board:
         self.newTileCoord = (-1,-1)
         self.score = 0
         
+        self.mergePercent = 0.5 #means it will start the animation at the 80% point
         self.currentMovement = []
         self.lastMovedTime = 0
-        self.moveSpeed = 0.15
-        self.popUpTime = 0.15
+        self.moveSpeed = 0.2
         self.oldTiles = deepcopy(self.tiles)
         
     def center(self, row, col, x, y, gapSize):
@@ -288,5 +288,11 @@ class Board:
                 fromSquare = (fromX, fromY)
                 toSquare = (toX, toY)
                 
-                drawPos = lerp_position(fromSquare, toSquare, self.lastMovedTime, self.moveSpeed)
-                self.renderTile(self.screen, drawPos[0], drawPos[1], move.currentValue, gapSize)
+                moveTimeEnd = self.moveSpeed * self.mergePercent
+                drawPos = lerp_position(fromSquare, toSquare, self.lastMovedTime, moveTimeEnd)
+                if moveTimeEnd > self.lastMovedTime or not move.merge:
+                    moveTimeEnd = self.moveSpeed
+                    self.renderTile(self.screen, drawPos[0], drawPos[1], move.currentValue, gapSize)
+                else:
+                    scaleProgress = 1 - (1 - progress) * (1/(1-self.mergePercent))
+                    self.renderTile(self.screen, drawPos[0], drawPos[1], move.newValue, gapSize, scale=overshoot(scaleProgress))
