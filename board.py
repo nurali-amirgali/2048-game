@@ -35,9 +35,6 @@ colors = [
 def multiply_tuple(pos, n):
     return tuple(x * n for x in pos)
 
-def add_tuple(t, n):
-    return tuple(x + n for x in t)
-
 def lerp_position(pos, target, current_time, arrival_time):
     t = min(current_time / arrival_time, 1)
 
@@ -170,7 +167,6 @@ class Board:
         for move in moveInfoList:
             if move.merge:
                 self.score += move.newValue
-                print(self.score)
         
         self.lastMovedTime = 0
         self.currentMovement = moveInfoList

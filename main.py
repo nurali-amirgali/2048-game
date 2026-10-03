@@ -19,13 +19,19 @@ endFont = pygame.font.Font(None, 150)
 
 boardX = WIDTH/2
 boardY = HEIGHT/2
-board = Board(screen, x=boardX, y=boardY, tileSize=90)
-board.placeRandomTile()
-board.placeRandomTile()
+board = None
+gameOver = False
 
+def setupBoard():
+    global board, gameOver
+    board = Board(screen, x=boardX, y=boardY, tileSize=90)
+    board.placeRandomTile()
+    board.placeRandomTile()
+    gameOver = False
+
+setupBoard()
 i = 0
 running = True
-gameOver = False
 while running:
     dt = clock.tick(FPS) / 1000
     for event in pygame.event.get():
@@ -42,10 +48,7 @@ while running:
                 board.makeMove(2)
             if event.key == pygame.K_r or event.key == pygame.K_2 or event.key == pygame.K_a or event.key == pygame.K_s or event.key == pygame.K_d:
                 if gameOver:
-                    board = Board(screen, x=boardX, y=boardY, tileSize=90)
-                    board.placeRandomTile()
-                    board.placeRandomTile()
-                    gameOver = False
+                    setupBoard()
             if event.key == pygame.K_p or event.key == pygame.K_o:
                 board.makeMove(i)
                 i += 1
