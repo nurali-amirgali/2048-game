@@ -5,7 +5,16 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            artifact: 2048-windows
+            path: dist/2048.exe
+          - os: ubuntu-latest
+            artifact: 2048-linux
+            path: dist/2048-linux.tar.gz
+          - os: macos-latest
+            artifact: 2048-macos
+            path: dist/2048-macos.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -13,8 +22,24 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pygame pyinstaller pillow
-      - run: pyinstaller --windowed --name 2048 --icon icon.png main.py
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: pyinstaller --onefile --windowed --name 2048 --icon icon.png main.py
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          pyinstaller --onefile --name 2048 main.py
+          tar -czf dist/2048-linux.tar.gz -C dist 2048
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --windowed --name 2048 --icon icon.png main.py
+          ditto -c -k --sequesterRsrc --keepParent dist/2048.app dist/2048-macos.zip
+
       - uses: actions/upload-artifact@v4
         with:
-          name: 2048-${{ matrix.os }}
-          path: dist/
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
